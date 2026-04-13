@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>習慣トラッカー</title>
+<style>
+  :root {
+    --primary: #6C63FF;
+    --primary-light: #EEF0FF;
+    --success: #4CAF86;
+    --success-light: #E8F8F1;
+    --warning: #F5A623;
+    --warning-light: #FEF5E7;
+    --danger: #FF5C5C;
+    --bg: #F5F6FA;
+    --card: #FFFFFF;
+    --text: #1A1D2E;
+    --text-sub: #8A8FA8;
+    --border: #E8EAF0;
+    --radius: 16px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.07);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 80px;
+    max-width: 430px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .header {
+    background: var(--card);
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow);
+  }
+  .header h1 { font-size: 18px; font-weight: 700; }
+  .header .date { font-size: 13px; color: var(--text-sub); margin-top: 2px; }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 72px;
+    z-index: 99;
+  }
+  .tab {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-sub);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+  .tab .tab-icon { display: block; font-size: 20px; margin-bottom: 2px; }
+
+  /* Pages */
+  .page { display: none; padding: 20px; }
+  .page.active { display: block; }
+
+  /* Today page */
+  .progress-card {
+    background: linear-gradient(135deg, var(--primary) 0%, #8B85FF 100%);
+    border-radius: var(--radius);
+    padding: 20px;
+    color: white;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 20px rgba(108,99,255,0.3);
+  }
+  .progress-card .label { font-size: 13px; opacity: 0.85; }
+  .progress-card .count { font-size: 36px; font-weight: 800; margin: 4px 0 12px; }
+  .progress-bar-track {
+    background: rgba(255,255,255,0.3);
+    border-radius: 99px;
+    height: 8px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    background: white;
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.5s cubic-bezier(.4,0,.2,1);
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+  }
+
+  .habit-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .habit-item {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    border: 2px solid transparent;
+    user-select: none;
+  }
+  .habit-item:active { transform: scale(0.98); }
+  .habit-item.done {
+    border-color: var(--success);
+    background: var(--success-light);
+  }
+
+  .habit-check {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    font-size: 14px;
+  }
+  .habit-item.done .habit-check {
+    background: var(--success);
+    border-color: var(--success);
+    color: white;
+  }
+
+  .habit-icon { font-size: 24px; }
+  .habit-name { font-size: 16px; font-weight: 600; flex: 1; }
+  .habit-streak {
+    font-size: 12px;
+    color: var(--text-sub);
+    background: var(--bg);
+    padding: 3px 8px;
+    border-radius: 99px;
+  }
+  .habit-item.done .habit-streak {
+    background: rgba(76,175,134,0.15);
+    color: var(--success);
+  }
+
+  /* All done message */
+  .all-done {
+    text-align: center;
+    padding: 30px 20px;
+    display: none;
+  }
+  .all-done.show { display: block; }
+  .all-done .emoji { font-size: 52px; margin-bottom: 12px; }
+  .all-done h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .all-done p { color: var(--text-sub); font-size: 14px; }
+
+  /* Calendar page */
+  .calendar-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+  }
+  .cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .cal-nav .month-label { font-size: 16px; font-weight: 700; }
+  .cal-nav-btn {
+    width: 34px; height: 34px;
+    background: var(--bg);
+    border: none;
+    border-radius: 50%;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text);
+  }
+  .cal-nav-btn:active { background: var(--border); }
+
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .cal-dow {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-sub);
+    padding: 4px 0;
+  }
+  .cal-day {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: default;
+    position: relative;
+  }
+  .cal-day.empty { }
+  .cal-day.today {
+    border: 2px solid var(--primary);
+    color: var(--primary);
+  }
+  .cal-day.full { background: var(--success); color: white; }
+  .cal-day.partial { background: var(--warning); color: white; }
+  .cal-day.none-done { }
+  .cal-day .dot {
+    width: 5px; height: 5px;
+    background: var(--text-sub);
+    border-radius: 50%;
+    margin-top: 1px;
+    opacity: 0.4;
+  }
+  .cal-day.full .dot, .cal-day.partial .dot { background: white; opacity: 0.7; }
+
+  .cal-legend {
+    display: flex;
+    gap: 14px;
+    margin-top: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-sub);
+  }
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+  }
+
+  /* Habits management page */
+  .add-habit-form {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+  }
+  .add-habit-form .form-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+  .form-row { display: flex; gap: 10px; }
+  .emoji-picker-btn {
+    width: 48px; height: 48px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    font-size: 22px;
+    background: var(--bg);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .text-input {
+    flex: 1;
+    height: 48px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 0 14px;
+    font-size: 15px;
+    font-family: inherit;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .text-input:focus { border-color: var(--primary); }
+  .add-btn {
+    width: 48px; height: 48px;
+    background: var(--primary);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .add-btn:active { opacity: 0.85; }
+
+  .emoji-panel {
+    display: none;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+  .emoji-panel.show { display: flex; }
+  .emoji-opt {
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 8px;
+  }
+  .emoji-opt:active { background: var(--bg); }
+
+  .manage-list { display: flex; flex-direction: column; gap: 10px; }
+  .manage-item {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow);
+  }
+  .manage-item .habit-icon { font-size: 24px; }
+  .manage-item .habit-name { flex: 1; font-size: 15px; font-weight: 600; }
+  .del-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: #FFF0F0;
+    border: none;
+    color: var(--danger);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .del-btn:active { background: #FFD6D6; }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 430px;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    display: flex;
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.07);
+    z-index: 200;
+  }
+  .nav-btn {
+    flex: 1;
+    padding: 8px 4px 12px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-sub);
+    cursor: pointer;
+    border: none;
+    background: none;
+    transition: color 0.2s;
+    font-family: inherit;
+    user-select: none;
+  }
+  .nav-btn .nav-icon { display: block; font-size: 22px; margin-bottom: 2px; }
+  .nav-btn.active { color: var(--primary); }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--text);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 99px;
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1 id="header-title">今日のタスク</h1>
+  <div class="date" id="header-date"></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchPage('today')" id="tab-today">
+    <span class="tab-icon">✅</span>今日
+  </div>
+  <div class="tab" onclick="switchPage('calendar')" id="tab-calendar">
+    <span class="tab-icon">📅</span>カレンダー
+  </div>
+  <div class="tab" onclick="switchPage('habits')" id="tab-habits">
+    <span class="tab-icon">⚙️</span>習慣管理
+  </div>
+</div>
+
+<!-- TODAY PAGE -->
+<div class="page active" id="page-today">
+  <div class="progress-card">
+    <div class="label">完了したタスク</div>
+    <div class="count" id="progress-count">0 / 0</div>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progress-bar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="section-title">習慣リスト</div>
+
+  <div class="habit-list" id="habit-list"></div>
+
+  <div class="all-done" id="all-done-msg">
+    <div class="emoji">🎉</div>
+    <h2>今日も全部完了！</h2>
+    <p>素晴らしい！継続は力なり。<br>また明日も頑張ろう！</p>
+  </div>
+</div>
+
+<!-- CALENDAR PAGE -->
+<div class="page" id="page-calendar">
+  <div class="calendar-card">
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="calPrevMonth()">‹</button>
+      <div class="month-label" id="cal-month-label"></div>
+      <button class="cal-nav-btn" onclick="calNextMonth()">›</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--success)"></div>全部完了</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--warning)"></div>一部完了</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--border)"></div>未実施</div>
+    </div>
+  </div>
+</div>
+
+<!-- HABITS PAGE -->
+<div class="page" id="page-habits">
+  <div class="add-habit-form">
+    <div class="form-title">新しい習慣を追加</div>
+    <div class="form-row">
+      <button class="emoji-picker-btn" id="emoji-btn" onclick="toggleEmojiPanel()">
+        <span id="selected-emoji">🌟</span>
+      </button>
+      <input class="text-input" id="new-habit-name" placeholder="習慣の名前" maxlength="20"
+        onkeydown="if(event.key==='Enter') addHabit()">
+      <button class="add-btn" onclick="addHabit()">＋</button>
+    </div>
+    <div class="emoji-panel" id="emoji-panel">
+      <!-- filled by JS -->
+    </div>
+  </div>
+
+  <div class="section-title">登録済みの習慣</div>
+  <div class="manage-list" id="manage-list"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+const STORAGE_KEY = 'habitTracker_v1';
+
+function loadData() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultData();
+  } catch { return defaultData(); }
+}
+
+function defaultData() {
+  return {
+    habits: [
+      { id: '1', name: '英単語', icon: '📖' },
+      { id: '2', name: 'NativeCamp', icon: '🎙️' },
+      { id: '3', name: 'ジャンピングジャック', icon: '🤸' },
+    ],
+    completions: {},  // { "YYYY-MM-DD": ["id1","id2",...] }
+    lastOpenDate: ''
+  };
+}
+
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+let data = loadData();
+
+// ─── DATE HELPERS ───────────────────────────────────────────────────────────
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' +
+    String(d.getMonth()+1).padStart(2,'0') + '-' +
+    String(d.getDate()).padStart(2,'0');
+}
+
+function formatDateJP(dateStr) {
+  const [y,m,d] = dateStr.split('-');
+  const dow = ['日','月','火','水','木','金','土'];
+  const day = new Date(dateStr).getDay();
+  return `${y}年${parseInt(m)}月${parseInt(d)}日（${dow[day]}）`;
+}
+
+// Daily reset: if last open was a different day, completions for today start fresh
+// (We store each day's completions separately, so no explicit reset needed —
+//  today's completions are keyed to today's date string)
+
+// ─── TODAY PAGE ─────────────────────────────────────────────────────────────
+
+function getTodayCompletions() {
+  return data.completions[todayStr()] || [];
+}
+
+function setTodayCompletions(arr) {
+  data.completions[todayStr()] = arr;
+  saveData();
+}
+
+function renderToday() {
+  const list = document.getElementById('habit-list');
+  const done = getTodayCompletions();
+  const total = data.habits.length;
+  const doneCount = done.length;
+
+  document.getElementById('progress-count').textContent = `${doneCount} / ${total}`;
+  const pct = total === 0 ? 0 : Math.round((doneCount / total) * 100);
+  document.getElementById('progress-bar').style.width = pct + '%';
+
+  list.innerHTML = '';
+  data.habits.forEach(h => {
+    const isDone = done.includes(h.id);
+    const streak = calcStreak(h.id);
+    const item = document.createElement('div');
+    item.className = 'habit-item' + (isDone ? ' done' : '');
+    item.innerHTML = `
+      <div class="habit-check">${isDone ? '✓' : ''}</div>
+      <div class="habit-icon">${h.icon}</div>
+      <div class="habit-name">${escHtml(h.name)}</div>
+      <div class="habit-streak">🔥${streak}日</div>
+    `;
+    item.onclick = () => toggleHabit(h.id);
+    list.appendChild(item);
+  });
+
+  const allDoneMsg = document.getElementById('all-done-msg');
+  if (total > 0 && doneCount === total) {
+    allDoneMsg.classList.add('show');
+  } else {
+    allDoneMsg.classList.remove('show');
+  }
+}
+
+function toggleHabit(id) {
+  let done = getTodayCompletions();
+  if (done.includes(id)) {
+    done = done.filter(x => x !== id);
+  } else {
+    done = [...done, id];
+  }
+  setTodayCompletions(done);
+  renderToday();
+}
+
+function calcStreak(habitId) {
+  let streak = 0;
+  const d = new Date();
+  // Check yesterday first (don't penalize if today not done yet)
+  // Actually count consecutive days ending today or yesterday
+  let checking = new Date();
+  while (true) {
+    const key = checking.getFullYear() + '-' +
+      String(checking.getMonth()+1).padStart(2,'0') + '-' +
+      String(checking.getDate()).padStart(2,'0');
+    const comp = data.completions[key] || [];
+    if (comp.includes(habitId)) {
+      streak++;
+      checking.setDate(checking.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+// ─── CALENDAR PAGE ──────────────────────────────────────────────────────────
+
+let calYear, calMonth;
+const today = new Date();
+calYear = today.getFullYear();
+calMonth = today.getMonth();
+
+function renderCalendar() {
+  const label = document.getElementById('cal-month-label');
+  const grid = document.getElementById('cal-grid');
+  const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  label.textContent = `${calYear}年 ${months[calMonth]}`;
+
+  const dows = ['日','月','火','水','木','金','土'];
+  let html = dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const todayKey = todayStr();
+
+  // Empty cells
+  for (let i = 0; i < firstDay; i++) {
+    html += `<div class="cal-day empty"></div>`;
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const comp = data.completions[key] || [];
+    const total = data.habits.length;
+    const isToday = key === todayKey;
+    const isFuture = key > todayKey;
+
+    let cls = 'cal-day';
+    let dotHtml = '';
+    if (!isFuture && total > 0) {
+      if (comp.length === total) cls += ' full';
+      else if (comp.length > 0) cls += ' partial';
+      else dotHtml = '<div class="dot"></div>';
+    }
+    if (isToday) cls += ' today';
+
+    html += `<div class="${cls}">${d}${dotHtml}</div>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+function calPrevMonth() {
+  calMonth--;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+function calNextMonth() {
+  calMonth++;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+}
+
+// ─── HABITS MANAGEMENT PAGE ─────────────────────────────────────────────────
+
+const EMOJI_LIST = ['📖','🎙️','🤸','🏃','💪','🧘','📝','🎵','🎨','🍎',
+  '💊','🧠','💤','🛁','🥗','🏋️','📚','✏️','🔢','🎯','🌿','💧','🚴','🤝',
+  '🌟','🎤','🧩','🏊','⚽','🎹','🗣️','🙏','🦷','🪴','☕','🥦','🌅'];
+
+let selectedEmoji = '🌟';
+
+function initEmojiPanel() {
+  const panel = document.getElementById('emoji-panel');
+  panel.innerHTML = EMOJI_LIST.map(e =>
+    `<span class="emoji-opt" onclick="pickEmoji('${e}')">${e}</span>`
+  ).join('');
+}
+
+function toggleEmojiPanel() {
+  document.getElementById('emoji-panel').classList.toggle('show');
+}
+
+function pickEmoji(e) {
+  selectedEmoji = e;
+  document.getElementById('selected-emoji').textContent = e;
+  document.getElementById('emoji-panel').classList.remove('show');
+}
+
+function addHabit() {
+  const input = document.getElementById('new-habit-name');
+  const name = input.value.trim();
+  if (!name) { showToast('名前を入力してください'); return; }
+  if (data.habits.find(h => h.name === name)) { showToast('同じ名前の習慣があります'); return; }
+
+  const id = Date.now().toString();
+  data.habits.push({ id, name, icon: selectedEmoji });
+  saveData();
+  input.value = '';
+  renderManageList();
+  renderToday();
+  showToast(`「${name}」を追加しました ✨`);
+}
+
+function deleteHabit(id) {
+  const h = data.habits.find(x => x.id === id);
+  if (!confirm(`「${h?.name}」を削除しますか？\n記録も削除されます。`)) return;
+  data.habits = data.habits.filter(x => x.id !== id);
+  // Remove from completions
+  Object.keys(data.completions).forEach(k => {
+    data.completions[k] = data.completions[k].filter(x => x !== id);
+  });
+  saveData();
+  renderManageList();
+  renderToday();
+  showToast('削除しました');
+}
+
+function renderManageList() {
+  const list = document.getElementById('manage-list');
+  if (data.habits.length === 0) {
+    list.innerHTML = '<div style="text-align:center;color:var(--text-sub);padding:24px;font-size:14px;">習慣がまだありません</div>';
+    return;
+  }
+  list.innerHTML = data.habits.map(h => `
+    <div class="manage-item">
+      <div class="habit-icon">${h.icon}</div>
+      <div class="habit-name">${escHtml(h.name)}</div>
+      <button class="del-btn" onclick="deleteHabit('${h.id}')">✕</button>
+    </div>
+  `).join('');
+}
+
+// ─── NAVIGATION ─────────────────────────────────────────────────────────────
+
+const PAGES = {
+  today:    { page: 'page-today',    tab: 'tab-today',    title: '今日のタスク' },
+  calendar: { page: 'page-calendar', tab: 'tab-calendar', title: 'カレンダー' },
+  habits:   { page: 'page-habits',   tab: 'tab-habits',   title: '習慣管理' },
+};
+
+function switchPage(name) {
+  Object.entries(PAGES).forEach(([k, v]) => {
+    document.getElementById(v.page).classList.toggle('active', k === name);
+    document.getElementById(v.tab).classList.toggle('active', k === name);
+  });
+  document.getElementById('header-title').textContent = PAGES[name].title;
+
+  if (name === 'calendar') renderCalendar();
+  if (name === 'habits') renderManageList();
+}
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+
+document.getElementById('header-date').textContent = formatDateJP(todayStr());
+initEmojiPanel();
+renderToday();
+</script>
+</body>
+</html>
