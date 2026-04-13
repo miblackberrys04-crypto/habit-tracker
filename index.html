@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>習慣トラッカー</title>
+<meta name="theme-color" content="#6C63FF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="習慣">
+<link id="apple-touch-icon" rel="apple-touch-icon">
 <style>
   :root {
     --primary: #6C63FF;
@@ -775,6 +780,79 @@ function showToast(msg) {
 document.getElementById('header-date').textContent = formatDateJP(todayStr());
 initEmojiPanel();
 renderToday();
+setupPWA();
+
+// ─── PWA ICON & MANIFEST ────────────────────────────────────────────────────
+function setupPWA() {
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  // 角丸背景（紫グラデーション）
+  const r = size * 0.22;
+  ctx.beginPath();
+  ctx.moveTo(r, 0);
+  ctx.arcTo(size, 0, size, size, r);
+  ctx.arcTo(size, size, 0, size, r);
+  ctx.arcTo(0, size, 0, 0, r);
+  ctx.arcTo(0, 0, size, 0, r);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0, 0, size, size);
+  grad.addColorStop(0, '#6C63FF');
+  grad.addColorStop(1, '#A89BFF');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // 白い円（背景）
+  ctx.beginPath();
+  ctx.arc(size / 2, size * 0.41, size * 0.27, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.fill();
+
+  // チェックマーク
+  ctx.strokeStyle = 'white';
+  ctx.lineWidth = size * 0.075;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(size * 0.31, size * 0.41);
+  ctx.lineTo(size * 0.45, size * 0.55);
+  ctx.lineTo(size * 0.69, size * 0.28);
+  ctx.stroke();
+
+  // 「習慣」テキスト
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.font = `bold ${size * 0.13}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('習慣', size / 2, size * 0.77);
+
+  const iconUrl = canvas.toDataURL('image/png');
+
+  // Apple Touch Icon
+  document.getElementById('apple-touch-icon').href = iconUrl;
+
+  // Web App Manifest（Android・PWA用）
+  const manifest = {
+    name: '習慣トラッカー',
+    short_name: '習慣',
+    start_url: '.',
+    display: 'standalone',
+    background_color: '#6C63FF',
+    theme_color: '#6C63FF',
+    icons: [
+      { src: iconUrl, sizes: '192x192', type: 'image/png' },
+      { src: iconUrl, sizes: '512x512', type: 'image/png' }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+  const link = document.createElement('link');
+  link.rel = 'manifest';
+  link.href = URL.createObjectURL(blob);
+  document.head.appendChild(link);
+}
 </script>
 </body>
 </html>
