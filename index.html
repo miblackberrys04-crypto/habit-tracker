@@ -408,6 +408,84 @@
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+
+  /* Day detail modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 500;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .modal-overlay.show {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .modal-sheet {
+    background: var(--card);
+    border-radius: 24px 24px 0 0;
+    width: 100%;
+    max-width: 430px;
+    padding: 16px 20px 40px;
+    transform: translateY(30px);
+    transition: transform 0.25s cubic-bezier(.4,0,.2,1);
+  }
+  .modal-overlay.show .modal-sheet {
+    transform: translateY(0);
+  }
+  .modal-handle {
+    width: 40px; height: 4px;
+    background: var(--border);
+    border-radius: 99px;
+    margin: 0 auto 16px;
+  }
+  .modal-date {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .modal-summary {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-bottom: 16px;
+  }
+  .modal-habit-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-habit-row:last-child { border-bottom: none; }
+  .modal-check {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .modal-check.done { background: var(--success); color: white; }
+  .modal-check.not-done { background: var(--border); color: transparent; }
+  .modal-habit-name { font-size: 15px; font-weight: 600; flex: 1; }
+  .modal-habit-icon { font-size: 22px; }
+  .modal-close-btn {
+    width: 100%;
+    margin-top: 20px;
+    padding: 14px;
+    background: var(--bg);
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-sub);
+    cursor: pointer;
+    font-family: inherit;
+  }
 </style>
 </head>
 <body>
@@ -489,6 +567,17 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- DAY DETAIL MODAL -->
+<div class="modal-overlay" id="day-modal" onclick="closeDayModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-date" id="modal-date"></div>
+    <div class="modal-summary" id="modal-summary"></div>
+    <div id="modal-habit-list"></div>
+    <button class="modal-close-btn" onclick="closeDayModalDirect()">閉じる</button>
+  </div>
+</div>
 
 <script>
 // ─── DATA ───────────────────────────────────────────────────────────────────
@@ -655,10 +744,51 @@ function renderCalendar() {
     }
     if (isToday) cls += ' today';
 
-    html += `<div class="${cls}">${d}${dotHtml}</div>`;
+    const clickable = !isFuture ? ` onclick="openDayModal('${key}')" style="cursor:pointer"` : '';
+    html += `<div class="${cls}"${clickable}>${d}${dotHtml}</div>`;
   }
 
   grid.innerHTML = html;
+}
+
+function openDayModal(dateKey) {
+  const comp = data.completions[dateKey] || [];
+  const total = data.habits.length;
+
+  document.getElementById('modal-date').textContent = formatDateJP(dateKey);
+
+  if (total === 0) {
+    document.getElementById('modal-summary').textContent = '習慣が登録されていません';
+  } else if (comp.length === 0) {
+    document.getElementById('modal-summary').textContent = 'この日は記録がありません';
+  } else {
+    document.getElementById('modal-summary').textContent =
+      `${comp.length} / ${total} 完了`;
+  }
+
+  const listEl = document.getElementById('modal-habit-list');
+  listEl.innerHTML = data.habits.map(h => {
+    const isDone = comp.includes(h.id);
+    return `
+      <div class="modal-habit-row">
+        <div class="modal-habit-icon">${h.icon}</div>
+        <div class="modal-habit-name">${escHtml(h.name)}</div>
+        <div class="modal-check ${isDone ? 'done' : 'not-done'}">${isDone ? '✓' : ''}</div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('day-modal').classList.add('show');
+}
+
+function closeDayModal(e) {
+  if (e.target === document.getElementById('day-modal')) {
+    document.getElementById('day-modal').classList.remove('show');
+  }
+}
+
+function closeDayModalDirect() {
+  document.getElementById('day-modal').classList.remove('show');
 }
 
 function calPrevMonth() {
